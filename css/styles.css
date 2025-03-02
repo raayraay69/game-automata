@@ -1,0 +1,76 @@
+body { margin: 0; background: #1a1a2e; font-family: 'Poppins', sans-serif; color: #fff; overflow: hidden; }
+#gameCanvas { width: 100vw; height: 100vh; }
+#quiz-container, #tutorial-container {
+    position: absolute; top: 20px; left: 20px; background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px); padding: 20px; border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37); z-index: 10; max-width: 350px;
+    border: 1px solid rgba(255, 255, 255, 0.18); transition: all 0.3s; display: none;
+}
+#feedback {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    font-size: 1.5em; color: #fff; background: rgba(0, 0, 0, 0.5); padding: 10px 20px;
+    border-radius: 5px; text-align: center; z-index: 10; max-width: 80%;
+}
+.option {
+    cursor: pointer; padding: 12px; margin: 8px 0; background: linear-gradient(45deg, #4a00e0, #8e2de2);
+    color: white; border-radius: 10px; transition: all 0.3s; border: none;
+    font-size: 1em; text-align: left; width: 100%; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+.option:hover {
+    transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(45deg, #8e2de2, #4a00e0);
+}
+#topic-menu {
+    position: absolute; top: 20px; right: 20px; background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px); padding: 20px; border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37); border: 1px solid rgba(255, 255, 255, 0.18);
+    display: flex; flex-direction: column; gap: 10px;
+}
+#topic-menu button {
+    background: linear-gradient(45deg, #4a00e0, #8e2de2); color: white; border: none;
+    padding: 12px 24px; border-radius: 10px; cursor: pointer; transition: all 0.3s;
+    font-size: 1em; text-transform: uppercase; letter-spacing: 1px;
+}
+#topic-menu button:hover {
+    transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(45deg, #8e2de2, #4a00e0);
+}
+#topic-menu button:disabled { background: #555; cursor: not-allowed; }
+#hud {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    font-size: 1.2em; color: #fff; z-index: 10; display: flex; gap: 20px;
+}
+#input-string-display {
+    position: absolute; top: 50px; left: 50%; transform: translateX(-50%);
+    font-size: 2em; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+.button-group { display: flex; gap: 10px; margin-top: 15px; }
+.action-btn {
+    background: linear-gradient(45deg, #4a00e0, #8e2de2); color: white; border: none;
+    padding: 10px 15px; border-radius: 8px; cursor: pointer; transition: all 0.3s;
+    font-size: 0.9em; flex: 1;
+}
+.action-btn:hover {
+    transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+#explanation-panel {
+    position: fixed; right: 20px; top: 50%; transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); padding: 20px;
+    border-radius: 15px; box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+    border: 1px solid rgba(255, 255, 255, 0.18); width: 400px; max-height: 80vh;
+    overflow-y: auto; z-index: 1000; display: none;
+}
+.explanation-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
+}
+.close-btn { cursor: pointer; font-size: 24px; color: white; }
+#animation-container {
+    height: 300px; background: rgba(0, 0, 0, 0.2); border-radius: 10px; margin-bottom: 15px;
+}
+#explanation-text { font-size: 0.9em; line-height: 1.6; color: #fff; }
+#loading { position: absolute; top: 10px; left: 10px; color: white; }
+#mission-log {
+    position: absolute; bottom: 60px; left: 20px; background: rgba(0, 0, 0, 0.7);
+    padding: 10px; border-radius: 5px; max-width: 300px; z-index: 10;
+}
+#sim-input { width: 100%; padding: 5px; margin-top: 10px; }

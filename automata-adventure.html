@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Automata Galaxy: Exam Quest</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; background: #1a1a2e; font-family: 'Poppins', sans-serif; color: #fff; overflow: hidden; }
+        #gameCanvas { width: 100vw; height: 100vh; }
+        #quiz-container, #tutorial-container {
+            position: absolute; top: 20px; left: 20px; background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px); padding: 20px; border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37); z-index: 10; max-width: 350px;
+            border: 1px solid rgba(255, 255, 255, 0.18); transition: all 0.3s; display: none;
+        }
+        #feedback {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            font-size: 1.5em; color: #fff; background: rgba(0, 0, 0, 0.5); padding: 10px 20px;
+            border-radius: 5px; text-align: center; z-index: 10; max-width: 80%;
+        }
+        .option {
+            cursor: pointer; padding: 12px; margin: 8px 0; background: linear-gradient(45deg, #4a00e0, #8e2de2);
+            color: white; border-radius: 10px; transition: all 0.3s; border: none;
+            font-size: 1em; text-align: left; width: 100%; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .option:hover {
+            transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, #8e2de2, #4a00e0);
+        }
+        #topic-menu {
+            position: absolute; top: 20px; right: 20px; background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px); padding: 20px; border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37); border: 1px solid rgba(255, 255, 255, 0.18);
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        #topic-menu button {
+            background: linear-gradient(45deg, #4a00e0, #8e2de2); color: white; border: none;
+            padding: 12px 24px; border-radius: 10px; cursor: pointer; transition: all 0.3s;
+            font-size: 1em; text-transform: uppercase; letter-spacing: 1px;
+        }
+        #topic-menu button:hover {
+            transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, #8e2de2, #4a00e0);
+        }
+        #topic-menu button:disabled { background: #555; cursor: not-allowed; }
+        #hud {
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            font-size: 1.2em; color: #fff; z-index: 10; display: flex; gap: 20px;
+        }
+        #input-string-display {
+            position: absolute; top: 50px; left: 50%; transform: translateX(-50%);
+            font-size: 2em; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .button-group { display: flex; gap: 10px; margin-top: 15px; }
+        .action-btn {
+            background: linear-gradient(45deg, #4a00e0, #8e2de2); color: white; border: none;
+            padding: 10px 15px; border-radius: 8px; cursor: pointer; transition: all 0.3s;
+            font-size: 0.9em; flex: 1;
+        }
+        .action-btn:hover {
+            transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        #explanation-panel {
+            position: fixed; right: 20px; top: 50%; transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); padding: 20px;
+            border-radius: 15px; box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18); width: 400px; max-height: 80vh;
+            overflow-y: auto; z-index: 1000; display: none;
+        }
+        .explanation-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
+        }
+        .close-btn { cursor: pointer; font-size: 24px; color: white; }
+        #animation-container {
+            height: 300px; background: rgba(0, 0, 0, 0.2); border-radius: 10px; margin-bottom: 15px;
+        }
+        #explanation-text { font-size: 0.9em; line-height: 1.6; color: #fff; }
+        #loading { position: absolute; top: 10px; left: 10px; color: white; }
+        #mission-log {
+            position: absolute; bottom: 60px; left: 20px; background: rgba(0, 0, 0, 0.7);
+            padding: 10px; border-radius: 5px; max-width: 300px; z-index: 10;
+        }
+        #sim-input { width: 100%; padding: 5px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div id="topic-menu">
+        <h3 style="color: #fff; text-align: center; margin-bottom: 15px; font-weight: 600;">Planetary Systems</h3>
+        <button id="dfa-btn" onclick="selectTopic('DFA')">DFA</button>
+        <button id="nfa-btn" onclick="selectTopic('NFA')" disabled>NFA</button>
+        <button id="regex-btn" onclick="selectTopic('Regex')" disabled>Regex</button>
+        <button id="pumping-btn" onclick="selectTopic('Pumping')" disabled>Pumping Lemma</button>
+        <button id="pda-btn" onclick="selectTopic('PDA')" disabled>PDA</button>
+        <button id="tm-btn" onclick="selectTopic('TM')" disabled>Turing Machine</button>
+        <button id="ambiguity-btn" onclick="selectTopic('Ambiguity')" disabled>Ambiguity</button>
+        <button id="assignment1-btn" onclick="selectTopic('Assignment1')" disabled>Assignment 1</button>
+        <button id="assignment2-btn" onclick="selectTopic('Assignment2')" disabled>Assignment 2</button>
+        <button onclick="startPracticeMode()">Practice Mode</button>
+    </div>
+    <div id="quiz-container" style="display:none;">
+        <h2 id="quiz-question"></h2>
+        <div id="options"></div>
+        <div class="button-group">
+            <button id="learn-more-btn" class="action-btn">Learn More</button>
+            <button id="hint-btn" class="action-btn">Hint</button>
+            <button id="explain-btn" class="action-btn" onclick="showExplanation()">Explain with Animation</button>
+        </div>
+    </div>
+    <div id="tutorial-container" style="display:none;">
+        <h2 id="tutorial-title"></h2>
+        <p id="tutorial-text"></p>
+        <button id="start-quiz-btn" class="action-btn" onclick="startQuiz()">Start Quiz</button>
+        <button id="sim-btn" class="action-btn" onclick="startSimulation()">Try Simulation</button>
+    </div>
+    <div id="explanation-panel" style="display:none;">
+        <div class="explanation-header">
+            <h3>Visual Explanation</h3>
+            <span class="close-btn" onclick="hideExplanation()">×</span>
+        </div>
+        <div id="animation-container"></div>
+        <div id="explanation-text"></div>
+    </div>
+    <div id="gameCanvas"></div>
+    <div id="hud">
+        <span id="energy-credits">Energy Credits: 0</span>
+        <span id="lives">Lives: 3</span>
+        <span id="level">Level: 1</span>
+    </div>
+    <div id="feedback"></div>
+    <div id="mission-log">
+        <p>Mission: Repair the Automaton Galaxy. Start with DFA system!</p>
+    </div>
+    <div id="input-string-display"></div>
+    <div id="loading">Loading...</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.159.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.159.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+
+        // Global Variables
+        let currentTopic = null;
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let totalQuestions = 0;
+        let currentQuestion = null;
+        let energyCredits = 0;
+        let lives = 3;
+        let level = 1;
+        let unlockedLevels = ['DFA'];
+        let practiceMode = false;
+
+        const topics = ['DFA', 'NFA', 'Regex', 'Pumping', 'PDA', 'TM', 'Ambiguity', 'Assignment1', 'Assignment2'];
+        const quizData = {
+            DFA: [
+                { question: "Where does our robot start?", options: ["q0", "q1", "q2"], answer: 0, explanation: "q0 is the start state of our DFA!", visualizationType: 'DFA', demoString: "01", tutorial: "A DFA (Deterministic Finite Automaton) has one clear path for each input. Watch q0 start and move with '0' to q1, then '1' to q2." }
+            ],
+            NFA: [
+                { question: "What's an ε-transition?", options: ["Teleport", "Input", "Stack"], answer: 0, explanation: "An ε-transition allows movement without consuming input!", visualizationType: 'NFA', demoString: "ε", tutorial: "An NFA (Non-deterministic Finite Automaton) can guess paths. See the ε-transition from q0 to q1—it's a free jump!" }
+            ],
+            Regex: [
+                { question: "What does a* mean?", options: ["Zero or more a's", "Exactly one a", "One or more a's"], answer: 0, explanation: "a* means zero or more occurrences of 'a'!", tutorial: "Regular expressions define patterns. 'a*' means any number of 'a's, including none. Imagine a loop accepting 'a' repeatedly." }
+            ],
+            Pumping: [
+                { question: "What is the purpose of the Pumping Lemma?", options: ["To prove a language is regular", "To prove a language is not regular", "To convert an NFA to a DFA", "To minimize a DFA"], answer: 1, explanation: "The Pumping Lemma is a tool used to prove that a language is not regular by showing it cannot satisfy the lemma's conditions.", tutorial: "The Pumping Lemma is a key concept for identifying non-regular languages. If a language is regular, there exists a pumping length p such that any string s in the language with length |s| ≥ p can be split into three parts: x, y, z, where |xy| ≤ p, |y| > 0, and for all i ≥ 0, xy^i z remains in the language. If this condition fails, the language is not regular." },
+                { question: "Prove that {a^n b^n | n ≥ 0} is not regular using the Pumping Lemma.", options: ["Assume L is regular, choose s = a^p b^p, show that pumping y leads to strings not in L.", "Assume L is regular, choose s = a^p, show that pumping y adds more a's.", "Assume L is regular, choose s = b^p a^p, show that pumping y preserves the order.", "Assume L is regular, choose s = a^p b^{p+1}, show that pumping y balances the string."], answer: 0, explanation: "Assume the language is regular with pumping length p. Choose s = a^p b^p. Since |xy| ≤ p, y consists of a's only. Pumping y (e.g., xy^2 z) increases the number of a's, resulting in more a's than b's, which is not in {a^n b^n | n ≥ 0}. This contradiction shows the language is not regular.", visualizationType: "Pumping", pumpingData: { s: "aaaabbbb", xLen: 2, yLen: 2, zLen: 4, language: "equal_a_b" } },
+                { question: "Which language is not regular?", options: ["{a^n | n ≥ 0}", "{a^n b^n | n ≥ 0}", "{a^n b^m | n, m ≥ 0}", "{a^* b^*}"], answer: 1, explanation: "{a^n b^n | n ≥ 0} is not regular because it requires matching counts of a's and b's, which a DFA cannot do due to its finite memory.", tutorial: "Non-regular languages often involve counting or matching that exceeds a DFA's finite states. {a^n b^n | n ≥ 0} is a classic example, as it needs to ensure the number of a's equals the number of b's." },
+                { question: "For the language {a^n b^m | n > m}, why does pumping fail?", options: ["Pumping y increases a's, keeping n > m.", "Pumping y may make m ≥ n.", "Pumping y adds b's instead of a's.", "Pumping y keeps the string unchanged."], answer: 1, explanation: "Choose s = a^{p+1} b^p. If y is in the a's, pumping y (e.g., i = 0) reduces the number of a's, potentially making n ≤ m, violating n > m. This shows {a^n b^m | n > m} is not regular.", visualizationType: "Pumping", pumpingData: { s: "aaaaabbbb", xLen: 3, yLen: 2, zLen: 4, language: "n_greater_m" } },
+                { question: "Prove that {a^n b^n | n ≥ 0} is not regular using the Pumping Lemma.", options: ["Assume L is regular, choose s = a^p b^p, show that pumping y leads to strings not in L.", "Assume L is regular, choose s = a^p, show that pumping y adds more a's.", "Assume L is regular, choose s = b^p a^p, show that pumping y preserves the order.", "Assume L is regular, choose s = a^p b^{p+1}, show that pumping y balances the string."], answer: 0, explanation: "Assume the language is regular with pumping length p. Choose s = a^p b^p. Since |xy| ≤ p, y consists of a's only. Pumping y (e.g., xy^2 z) increases the number of a's, resulting in more a's than b's, which is not in {a^n b^n | n ≥ 0}. This contradiction shows the language is not regular.", visualizationType: "Pumping", pumpingData: { s: "aaaabbbb", xLen: 2, yLen: 2, zLen: 4, language: "equal_a_b" } },
+
+                { question: "Which language is not regular?", options: ["{a^n | n ≥ 0}", "{a^n b^n | n ≥ 0}", "{a^n b^m | n, m ≥ 0}", "{a^* b^*}"], answer: 1, explanation: "{a^n b^n | n ≥ 0} is not regular because it requires matching counts of a's and b's, which a DFA cannot do due to its finite memory.", tutorial: "Non-regular languages often involve counting or matching that exceeds a DFA's finite states. {a^n b^n | n ≥ 0} is a classic example, as it needs to ensure the number of a's equals the number of b's." },
+                { question: "For the language {a^n b^m | n > m}, why does pumping fail?", options: ["Pumping y increases a's, keeping n > m.", "Pumping y may make m ≥ n.", "Pumping y adds b's instead of a's.", "Pumping y keeps the string unchanged."], answer: 1, explanation: "Choose s = a^{p+1} b^p. If y is in the a's, pumping y (e.g., i = 0) reduces the number of a's, potentially making n ≤ m, violating n > m. This shows {a^n b^m | n > m} is not regular.", visualizationType: "Pumping", pumpingData: { s: "aaaaabbbb", xLen: 3, yLen: 2, zLen: 4, language: "n_greater_m" } }
+            ],
+            PDA: [
+                { question: "What's a PDA?", options: ["DFA + stack", "Infinite tape", "ε-moves only"], answer: 0, explanation: "A PDA is a DFA with a stack for memory!", tutorial: "A PDA (Pushdown Automaton) uses a stack. Imagine stacking symbols to match 'a's and 'b's." }
+            ],
+            TM: [
+                { question: "What's a TM?", options: ["Infinite tape", "Stack", "Multiple heads"], answer: 0, explanation: "A Turing Machine uses an infinite tape!", tutorial: "A Turing Machine has an infinite tape to read and write. It's the ultimate computational model!" }
+            ],
+            Ambiguity: [
+                { question: "Is S -> aSbS | bSaS | λ ambiguous for 'aabb'?", options: ["Yes", "No", "Maybe"], answer: 0, explanation: "Yes—'aabb' has multiple parse trees!", visualizationType: 'Ambiguity', tree1: { label: 'S', children: [{ label: 'a' }, { label: 'S', children: [{ label: 'a' }, { label: 'b' }, { label: 'S' }] }, { label: 'b' }, { label: 'S' }] }, tree2: { label: 'S', children: [{ label: 'a' }, { label: 'S' }, { label: 'b' }, { label: 'S', children: [{ label: 'b' }, { label: 'a' }, { label: 'S' }] }] }, learnMore: "<h3>Ambiguity Explained</h3><p>A grammar is <strong>ambiguous</strong> if a string (like 'aabb') has multiple <strong>parse trees</strong>.</p><p><strong>Tree 1:</strong> S → aSbS → aaSbS → aabb</p><p><strong>Tree 2:</strong> S → aSbS → aSbbS → aabb</p><p>Click 'Explain with Animation' to see these trees!</p>", hints: ["Can 'aabb' be derived in two ways?", "Check grammar rules."], tutorial: "Ambiguity means multiple ways to build a string. For 'aabb', see how S can split differently." }
+            ],
+            Assignment1: [
+                { question: "Find all strings in {a, b} of length ≤ 3.", options: ["λ, a, b, aa, ab, ba, bb, aaa, aab, aba, abb, baa, bab, bba, bbb", "a, b, aa, ab, ba, bb", "λ, a, b", "aa, ab, ba, bb"], answer: 0, explanation: "All strings of length 0 to 3 are: λ, a, b, aa, ab, ba, bb, aaa, aab, aba, abb, baa, bab, bba, bbb.", demoString: "λ, a, b, aa, ab, ba, bb, aaa, aab, aba, abb, baa, bab, bba, bbb", tutorial: "List all combinations of 'a' and 'b' up to length 3. Start with λ (empty), then single letters, and so on." },
+                { question: "How many states in a DFA for L = L(wa) ∪ L((ab)*ba)?", options: ["3 states", "4 states", "5 states"], answer: 0, explanation: "Needs 3 states: one for 'wa', one for '(ab)*', and one for accepting 'ba'.", visualizationType: 'DFA', demoString: "ba", tutorial: "This DFA combines two languages. Watch how 'ba' travels from q0 to q2." }
+            ],
+            Assignment2: [
+                { question: "Convert S -> aS | bS | λ to Chomsky Normal Form.", options: ["S -> AS | BS | λ, A -> a, B -> b", "S -> AS | BS, A -> a, B -> b", "S -> a | b | λ"], answer: 1, explanation: "CNF removes λ, splits into S -> AS | BS, A -> a, B -> b.", tutorial: "CNF simplifies grammars. Remove λ and split productions into pairs or terminals." },
+                { question: "Is S -> aSbS | bSaS | λ ambiguous for 'aabb'?", options: ["Yes", "No", "Maybe"], answer: 0, explanation: "'aabb' has multiple parse trees (e.g., a(Sb)S, aS(bbS)).", visualizationType: 'Ambiguity', tree1: { label: 'S', children: [{ label: 'a' }, { label: 'S', children: [{ label: 'a' }, { label: 'b' }, { label: 'S' }] }, { label: 'b' }, { label: 'S' }] }, tree2: { label: 'S', children: [{ label: 'a' }, { label: 'S' }, { label: 'b' }, { label: 'S', children: [{ label: 'b' }, { label: 'a' }, { label: 'S' }] }] }, tutorial: "Check ambiguity by building 'aabb' in two ways. See the parse trees animate!" }
+            ]
+        };
+
+        // Three.js Setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('gameCanvas').appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.enableZoom = true;
+
+        scene.add(new THREE.AmbientLight(0x404040));
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 5, 5).normalize();
+        scene.add(directionalLight);
+
+        function createStarfield() {
+            const particles = new THREE.Group();
+            const geometry = new THREE.SphereGeometry(0.1, 8, 8);
+            const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            for (let i = 0; i < 200; i++) {
+                const star = new THREE.Mesh(geometry, material);
+                star.position.set(
+                    (Math.random() - 0.5) * 100,
+                    (Math.random() - 0.5) * 100,
+                    (Math.random() - 0.5) * 100
+                );
+                particles.add(star);
+            }
+            scene.add(particles);
+            function animateStars() {
+                particles.rotation.y += 0.0002;
+                particles.rotation.x += 0.0001;
+                requestAnimationFrame(animateStars);
+            }
+            animateStars();
+        }
+        createStarfield();
+
+        const states = [
+            { name: 'q0', position: new THREE.Vector3(-5, 0, 0), isAccepting: false, color: 0xff0000, label: 'Start (Red Light)' },
+            { name: 'q1', position: new THREE.Vector3(0, 0, 0), isAccepting: false, color: 0xffff00, label: 'Middle (Yellow Caution)' },
+            { name: 'q2', position: new THREE.Vector3(5, 0, 0), isAccepting: true, color: 0x00ff00, label: 'Goal (Green Win)' }
+        ];
+
+        states.forEach(state => {
+            const geometry = new THREE.SphereGeometry(1, 32, 32);
+            const material = new THREE.MeshPhongMaterial({ color: state.color, emissive: 0x000000 });
+            state.mesh = new THREE.Mesh(geometry, material);
+            state.mesh.position.copy(state.position);
+            state.mesh.userData = { name: state.name, label: state.label, isAccepting: state.isAccepting };
+            scene.add(state.mesh);
+            if (state.isAccepting) {
+                const outerGeometry = new THREE.SphereGeometry(1.2, 32, 32);
+                const outerMaterial = new THREE.MeshBasicMaterial({ color: state.color, wireframe: true });
+                const outerMesh = new THREE.Mesh(outerGeometry, outerMaterial);
+                outerMesh.position.copy(state.position);
+                scene.add(outerMesh);
+            }
+        });
+
+        let loadedFont;
+        function addStateLabels() {
+            const loader = new FontLoader();
+            loader.load(
+                'https://unpkg.com/three@0.159.0/examples/fonts/helvetiker_regular.typeface.json',
+                function(font) {
+                    loadedFont = font;
+                    states.forEach(state => {
+                        const textGeometry = new TextGeometry(state.name, { font, size: 0.5, height: 0.1 });
+                        const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                        const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                        textMesh.position.set(state.position.x - 0.3, state.position.y + 1.5, state.position.z);
+                        scene.add(textMesh);
+                        const epsilonRing = new THREE.RingGeometry(1.2, 1.3, 32);
+                        const epsilonMaterial = new THREE.MeshBasicMaterial({ color: 0x800080, side: THREE.DoubleSide });
+                        const epsilonMesh = new THREE.Mesh(epsilonRing, epsilonMaterial);
+                        epsilonMesh.position.copy(state.position);
+                        epsilonMesh.rotation.x = Math.PI / 2;
+                        epsilonMesh.visible = false;
+                        scene.add(epsilonMesh);
+                        state.epsilonIndicator = epsilonMesh;
+                    });
+                    // Initialize the PumpingVisualizer after font is loaded
+                    initPumpingVisualizer();
+                    document.getElementById('loading').style.display = 'none';
+                },
+                function() { document.getElementById('loading').innerText = 'Loading font...'; },
+                function(error) {
+                    console.error('Font loading failed:', error);
+                    document.getElementById('loading').innerText = 'Font failed to load; using fallback.';
+                    states.forEach(state => {
+                        const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.1);
+                        const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                        const mesh = new THREE.Mesh(geometry, material);
+                        mesh.position.set(state.position.x - 0.3, state.position.y + 1.5, state.position.z);
+                        scene.add(mesh);
+                    });
+                }
+            );
+        }
+        addStateLabels();
+
+        const transitions = [
+            { from: 'q0', to: 'q1', symbol: '0' },
+            { from: 'q1', to: 'q2', symbol: '1' },
+            { from: 'q0', to: 'q0', symbol: '1' },
+            { from: 'q1', to: 'q1', symbol: '0' },
+            { from: 'q2', to: 'q0', symbol: '0' },
+            { from: 'q2', to: 'q0', symbol: '1' },
+            { from: 'q0', to: 'q1', symbol: 'ε' }
+        ];
+
+        transitions.forEach(trans => {
+            const fromState = states.find(s => s.name === trans.from);
+            const toState = states.find(s => s.name === trans.to);
+            const direction = new THREE.Vector3().subVectors(toState.position, fromState.position).normalize();
+            const color = trans.symbol === 'ε' ? 0x800080 : 0x0000ff;
+            const arrow = new THREE.ArrowHelper(direction, fromState.position, toState.position.distanceTo(fromState.position) - 2, color);
+            scene.add(arrow);
+            if (loadedFont) {
+                const midPoint = new THREE.Vector3().lerpVectors(fromState.position, toState.position, 0.5);
+                const textGeometry = new THREE.TextGeometry(trans.symbol, { font: loadedFont, size: 0.5, height: 0.1 });
+                const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                textMesh.position.set(midPoint.x, midPoint.y + 0.5, midPoint.z);
+                scene.add(textMesh);
+            }
+        });
+
+        const automatonGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+        const automatonMaterial = new THREE.MeshPhongMaterial({ color: 0x00ffff });
+        const automaton = new THREE.Mesh(automatonGeometry, automatonMaterial);
+        automaton.position.copy(states[0].position);
+        scene.add(automaton);
+
+        camera.position.set(0, 5, 10);
+        camera.lookAt(0, 0, 0);
+
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const sounds = {
+            correct: null,
+            incorrect: null,
+            transition: null,
+            levelUp: null
+        };
+        function loadSounds() {
+            function createTone(frequency, duration, type = 'sine') {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                oscillator.type = type;
+                oscillator.frequency.value = frequency;
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                return {
+                    play: function() {
+                        oscillator.start();
+                        gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+                        oscillator.stop(audioContext.currentTime + duration);
+                    }
+                };
+            }
+            sounds.correct = () => createTone(880, 0.3).play();
+            sounds.incorrect = () => createTone(220, 0.3, 'sawtooth').play();
+            sounds.transition = () => createTone(440, 0.1).play();
+            sounds.levelUp = () => {
+                createTone(523.25, 0.1).play();
+                setTimeout(() => createTone(659.25, 0.1).play(), 100);
+                setTimeout(() => createTone(783.99, 0.3).play(), 200);
+            };
+        }
+        loadSounds();
+
+        // Functions
+        function selectTopic(topic) {
+            if (!unlockedLevels.includes(topic)) {
+                document.getElementById('feedback').innerText = 'Complete previous levels to unlock this topic!';
+                return;
+            }
+            currentTopic = topic;
+            currentQuestionIndex = 0;
+            score = 0;
+            document.getElementById('topic-menu').style.display = 'none';
+            document.getElementById('tutorial-container').style.display = 'block';
+            document.getElementById('quiz-container').style.display = 'none';
+            document.getElementById('tutorial-title').innerText = `${currentTopic} System`;
+            document.getElementById('tutorial-text').innerText = quizData[currentTopic][0].tutorial;
+            if (currentTopic === "Pumping") {
+                document.getElementById("tutorial-text").innerHTML += `
+                    <p><strong>Conditions:</strong></p>
+                    <ul>
+                        <li>|xy| ≤ p (y is within the first p characters)</li>
+                        <li>|y| > 0 (y cannot be empty)</li>
+                        <li>xy^i z ∈ L for all i ≥ 0 (pumping y keeps the string in the language)</li>
+                    </ul>
+                `;
+            }
+            if (quizData[currentTopic][0].visualizationType === 'DFA' || quizData[currentTopic][0].visualizationType === 'NFA') {
+                showVisualDemonstration(quizData[currentTopic][0], true, true);
+            }
+        }
+
+        function updateHUD() {
+            document.getElementById('energy-credits').innerText = `Energy Credits: ${energyCredits}`;
+            document.getElementById('lives').innerText = `Lives: ${lives}`;
+            document.getElementById('level').innerText = `Level: ${level}`;
+        }
+
+        function startPracticeMode() {
+            practiceMode = true;
+            currentTopic = 'Practice';
+            currentQuestionIndex = 0;
+            score = 0;
+            totalQuestions = 10;
+            document.getElementById('topic-menu').style.display = 'none';
+            showPracticeQuestion();
+        }
+
+        function startQuiz() {
+            document.getElementById('tutorial-container').style.display = 'none';
+            document.getElementById('quiz-container').style.display = 'block';
+            showQuizQuestion();
+        }
+
+        function startSimulation() {
+            document.getElementById('tutorial-container').innerHTML = `
+                <h2 id="tutorial-title">${currentTopic} System</h2>
+                <p id="tutorial-text">${quizData[currentTopic][0].tutorial}</p>
+                <button id="start-quiz-btn" class="action-btn" onclick="startQuiz()">Start Quiz</button>
+                <button id="sim-btn" class="action-btn" onclick="startSimulation()">Try Simulation</button>
+                <input id="sim-input" placeholder="Enter a string to simulate">
+                <button class="action-btn" onclick="runSimulation()">Run</button>
+            `;
+        }
+
+        function runSimulation() {
+            const input = document.getElementById('sim-input').value;
+            let currentState = 'q0';
+            let step = 0;
+            automaton.position.copy(states[0].position);
+            document.getElementById('input-string-display').innerHTML = input.split('').map((char, i) => `<span id="char${i}">${char}</span>`).join('');
+            const interval = setInterval(() => {
+                if (step < input.length) {
+                    const symbol = input[step];
+                    document.getElementById(`char${step}`).style.color = 'yellow';
+                    let nextTransitions = transitions.filter(t => t.from === currentState && (t.symbol === symbol || (currentTopic === 'NFA' && t.symbol === 'ε')));
+                    if (nextTransitions.length > 0) {
+                        const nextTransition = nextTransitions[0];
+                        currentState = nextTransition.to;
+                        const nextPosition = states.find(s => s.name === currentState).position;
+                        enhancedMoveAutomaton(nextPosition);
+                        if (nextTransition.symbol === 'ε') {
+                            document.getElementById('feedback').innerText += "\nε-transition used!";
+                        }
+                    }
+                    step++;
+                } else {
+                    clearInterval(interval);
+                    const finalState = states.find(s => s.name === currentState);
+                    document.getElementById('feedback').innerText = `Simulation ends at ${finalState.label}: ${finalState.isAccepting ? "Accepted!" : "Rejected!"}`;
+                    setTimeout(() => document.getElementById('input-string-display').innerHTML = '', 2000);
+                }
+            }, 1000);
+        }
+
+        function showPracticeQuestion() {
+            if (currentQuestionIndex >= totalQuestions) {
+                document.getElementById('feedback').innerText = `Practice Complete! Score: ${score}/${totalQuestions}`;
+                document.getElementById('quiz-container').style.display = 'none';
+                document.getElementById('topic-menu').style.display = 'block';
+                practiceMode = false;
+                return;
+            }
+            const topic = topics[Math.floor(Math.random() * topics.length)];
+            const question = quizData[topic][Math.floor(Math.random() * quizData[topic].length)];
+            currentQuestion = { ...question, originalTopic: topic };
+            document.getElementById('quiz-question').innerText = currentQuestion.question;
+            const optionsDiv = document.getElementById('options');
+            optionsDiv.innerHTML = '';
+            currentQuestion.options.forEach((opt, index) => {
+                const option = document.createElement('div');
+                option.className = 'option';
+                option.innerHTML = opt;
+                option.onclick = () => checkAnswer(index, currentQuestion);
+                optionsDiv.appendChild(option);
+            });
+            document.getElementById('learn-more-btn').onclick = () => showLearnMore(currentQuestion);
+            document.getElementById('hint-btn').onclick = () => showHint(currentQuestion);
+            document.getElementById('quiz-container').style.display = 'block';
+        }
+
+        function showQuizQuestion() {
+            if (currentQuestionIndex >= totalQuestions) {
+                document.getElementById('feedback').innerText = `System Repaired! Score: ${score}/${totalQuestions}`;
+                document.getElementById('quiz-container').style.display = 'none';
+                document.getElementById('topic-menu').style.display = 'block';
+                unlockNextLevel();
+                updateHUD();
+                return;
+            }
+            currentQuestion = quizData[currentTopic][currentQuestionIndex];
+            document.getElementById('quiz-question').innerText = currentQuestion.question;
+            const optionsDiv = document.getElementById('options');
+            optionsDiv.innerHTML = '';
+            currentQuestion.options.forEach((opt, index) => {
+                const option = document.createElement('div');
+                option.className = 'option';
+                option.innerHTML = opt;
+                option.onclick = () => checkAnswer(index, currentQuestion);
+                optionsDiv.appendChild(option);
+            });
+            document.getElementById('learn-more-btn').onclick = () => showLearnMore(currentQuestion);
+            document.getElementById('hint-btn').onclick = () => showHint(currentQuestion);
+        }
+
+        function checkAnswer(userAnswer, question) {
+            const isCorrect = userAnswer === question.answer;
+            if (isCorrect) {
+                score++;
+                energyCredits += 10;
+                sounds.correct();
+                document.getElementById('feedback').innerText = `Correct! ${question.explanation}`;
+                showVisualDemonstration(question, true);
+            } else {
+                lives--;
+                sounds.incorrect();
+                document.getElementById('feedback').innerText = `Oops! Correct answer: "${question.options[question.answer]}". ${question.explanation}`;
+                showVisualDemonstration(question, false);
+                if (lives <= 0) {
+                    document.getElementById('feedback').innerText += "\nMission Failed! Restarting...";
+                    setTimeout(() => {
+                        lives = 3;
+                        score = 0;
+                        currentQuestionIndex = 0;
+                        showQuizQuestion();
+                    }, 3000);
+                    return;
+                }
+            }
+            currentQuestionIndex++;
+            updateHUD();
+            setTimeout(practiceMode ? showPracticeQuestion : showQuizQuestion, 3000);
+        }
+
+        function unlockNextLevel() {
+            const nextIndex = topics.indexOf(currentTopic) + 1;
+            if (nextIndex < topics.length && !unlockedLevels.includes(topics[nextIndex])) {
+                unlockedLevels.push(topics[nextIndex]);
+                document.getElementById(`${topics[nextIndex].toLowerCase()}-btn`).disabled = false;
+                sounds.levelUp();
+                document.getElementById('mission-log').innerText = `Mission Updated: Level ${level} complete! Proceed to ${topics[nextIndex]} system.`;
+                level++;
+            }
+        }
+
+        // Import the PumpingVisualizer class
+        import { PumpingVisualizer } from './js/pumpingVisualizer.js';
+
+        // Initialize the PumpingVisualizer
+        let pumpingVisualizer;
+
+        // Initialize the visualizer after font is loaded
+        function initPumpingVisualizer() {
+            if (loadedFont) {
+                pumpingVisualizer = new PumpingVisualizer(scene, camera, loadedFont);
+            }
+        }
+
+        function showVisualDemonstration(question, isCorrect, isExplanation = false) {
+            if (question.visualizationType === 'DFA' || question.visualizationType === 'NFA') {
+                const testString = question.demoString || "01";
+                let currentState = 'q0';
+                let step = 0;
+                automaton.position.copy(states[0].position);
+                document.getElementById('input-string-display').innerHTML = testString.split('').map((char, i) => `<span id="char${i}">${char}</span>`).join('');
+                const interval = setInterval(() => {
+                    if (step < testString.length) {
+                        const symbol = testString[step];
+                        document.getElementById(`char${step}`).style.color = 'yellow';
+                        let nextTransitions = transitions.filter(t => t.from === currentState && (t.symbol === symbol || (question.visualizationType === 'NFA' && t.symbol === 'ε')));
+                        if (nextTransitions.length > 0) {
+                            const nextTransition = nextTransitions[0];
+                            currentState = nextTransition.to;
+                            const nextPosition = states.find(s => s.name === currentState).position;
+                            enhancedMoveAutomaton(nextPosition);
+                            if (nextTransition.symbol === 'ε') {
+                                document.getElementById('feedback').innerText += "\nε-transition used!";
+                            }
+                        }
+                        step++;
+                    } else {
+                        clearInterval(interval);
+                        const finalState = states.find(s => s.name === currentState);
+                        document.getElementById('feedback').innerText += `\nEnds at ${finalState.label}: ${finalState.isAccepting ? "Accepted!" : "Rejected!"}`;
+                        if (!isExplanation) setTimeout(() => document.getElementById('input-string-display').innerHTML = '', 2000);
+                    }
+                }, 1000);
+            } else if (question.visualizationType === 'Pumping') {
+                // Use the PumpingVisualizer class for Pumping Lemma visualizations
+                if (!pumpingVisualizer) {
+                    initPumpingVisualizer();
+                }
+                pumpingVisualizer.showPumpingDemonstration(question, isCorrect, isExplanation);
+            } else if (question.demoString) {
+                document.getElementById('input-string-display').innerText = question.demoString;
+                setTimeout(() => document.getElementById('input-string-display').innerText = '', 2000);
+            } else {
+                const randomState = states[Math.floor(Math.random() * states.length)];
+                enhancedMoveAutomaton(randomState.position);
+            }
+        }
+
+        function enhancedMoveAutomaton(targetPosition) {
+            sounds.transition();
+            const startPosition = automaton.position.clone();
+            const duration = 1000;
+            const startTime = Date.now();
+            let animationFrameId;
+            function updatePosition() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                automaton.position.lerpVectors(startPosition, targetPosition, progress);
+                automaton.rotation.y += 0.1;
+                states.forEach(state => {
+                    state.mesh.material.emissive.setHex(state.position.equals(targetPosition) ? 0x333333 : 0x000000);
+                });
+                if (progress < 1) {
+                    animationFrameId = requestAnimationFrame(updatePosition);
+                } else {
+                    cancelAnimationFrame(animationFrameId);
+                }
+            }
+            animationFrameId = requestAnimationFrame(updatePosition);
+        }
+
+        function showLearnMore(question) {
+            let modal = document.getElementById('learn-more-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'learn-more-modal';
+                modal.style.position = 'fixed';
+                modal.style.top = '50%';
+                modal.style.left = '50%';
+                modal.style.transform = 'translate(-50%, -50%)';
+                modal.style.background = 'rgba(255, 255, 255, 0.1)';
+                modal.style.backdropFilter = 'blur(10px)';
+                modal.style.padding = '20px';
+                modal.style.borderRadius = '15px';
+                modal.style.boxShadow = '0 8px 32px rgba(31, 38, 135, 0.37)';
+                modal.style.border = '1px solid rgba(255, 255, 255, 0.18)';
+                modal.style.zIndex = '1000';
+                modal.innerHTML = `
+                    <div id="learn-more-content">${question.learnMore || "No additional info available."}</div>
+                    <button class="action-btn" onclick="closeModal()">Close</button>
+                `;
+                document.body.appendChild(modal);
+            } else {
+                document.getElementById('learn-more-content').innerHTML = question.learnMore || "No additional info available.";
+                modal.style.display = 'block';
+            }
+            hideExplanation();
+        }
+
+        let hintIndex = 0;
+        function showHint(question) {
+            if (question.hints && hintIndex < question.hints.length) {
+                document.getElementById('feedback').innerText = `Hint: ${question.hints[hintIndex]}`;
+                hintIndex++;
+            } else {
+                document.getElementById('feedback').innerText = "No more hints available.";
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('learn-more-modal');
+            if (modal) modal.style.display = 'none';
+            hintIndex = 0;
+        }
+
+        function showExplanation() {
+            console.log('Showing explanation - placeholder');
+            document.getElementById('explanation-panel').style.display = 'block';
+            // Add your animation logic here later if desired
+        }
+
+        function hideExplanation() {
+            document.getElementById('explanation-panel').style.display = 'none';
+        }
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        function onMouseClick(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(states.map(s => s.mesh));
+            if (intersects.length > 0) {
+                const state = intersects[0].object.userData;
+                document.getElementById('feedback').innerText = `${state.name}: ${state.label} (${state.isAccepting ? 'Accepting' : 'Non-accepting'})`;
+            }
+        }
+        window.addEventListener('click', onMouseClick);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        updateHUD();
+
+        // Expose functions to global scope for HTML buttons
+        window.selectTopic = selectTopic;
+        window.startPracticeMode = startPracticeMode;
+        window.startQuiz = startQuiz;
+        window.startSimulation = startSimulation;
+        window.runSimulation = runSimulation;
+        window.showExplanation = showExplanation;
+        window.hideExplanation = hideExplanation;
+        window.closeModal = closeModal;
+    </script>
+</body>
+</html>

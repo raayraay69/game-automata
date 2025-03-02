@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pumping Lemma Adventure</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.157.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="input-panel">
+        <h2>Pumping Lemma Visualizer</h2>
+        <div class="input-group">
+            <label for="language-select">Choose a Language:</label>
+            <select id="language-select">
+                <option value="equal_a_b">a^n b^n (e.g., "aabb")</option>
+                <option value="n_greater_m">a^n b^m where n > m (e.g., "aaab")</option>
+                <option value="anbn">a^n b^n (e.g., "aaabbb")</option>
+                <option value="ww">ww (e.g., "abab")</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label for="input-string">Enter a String:</label>
+            <input type="text" id="input-string" placeholder="e.g., aabb">
+        </div>
+        <button id="start-btn" class="action-btn">Start Visualization</button>
+    </div>
+
+    <div id="explanation-panel" style="display: none;">
+        <div class="explanation-header">
+            <h3>Visual Explanation</h3>
+            <span class="close-btn" onclick="hideExplanation()">×</span>
+        </div>
+        <div id="animation-container"></div>
+        <div id="explanation-text"></div>
+    </div>
+
+    <div id="input-string-display"></div>
+    <div id="feedback"></div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
