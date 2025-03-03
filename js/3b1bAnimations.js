@@ -6,7 +6,6 @@
  */
 
 import * as THREE from 'three';
-import { MathJax } from 'mathjax';
 import { TWEEN } from 'three/addons/libs/tween.module.min.js';
 
 export class MathAnimation {
@@ -303,6 +302,38 @@ export class MathNotation {
         const texture = new THREE.CanvasTexture(canvas);
         texture.needsUpdate = true;
         return texture;
+    }
+}
+
+export class VisualEffects {
+    constructor(scene, renderer) {
+        this.scene = scene;
+        this.renderer = renderer;
+        this.effects = new THREE.Group();
+        this.scene.add(this.effects);
+    }
+    
+    createGrid() {
+        const size = 100;
+        const divisions = 50;
+        const gridHelper = new THREE.GridHelper(size, divisions, 0x3b1bb1, 0x1e1e2f);
+        gridHelper.position.y = -10;
+        gridHelper.material.opacity = 0.2;
+        gridHelper.material.transparent = true;
+        this.effects.add(gridHelper);
+        
+        // Add subtle glow effect
+        const gridGeometry = new THREE.PlaneGeometry(size, size);
+        const gridMaterial = new THREE.MeshBasicMaterial({
+            color: 0x3b1bb1,
+            transparent: true,
+            opacity: 0.05,
+            side: THREE.DoubleSide
+        });
+        const gridPlane = new THREE.Mesh(gridGeometry, gridMaterial);
+        gridPlane.rotation.x = Math.PI / 2;
+        gridPlane.position.y = -10;
+        this.effects.add(gridPlane);
     }
 }
 

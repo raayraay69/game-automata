@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grammar Ambiguity Visualization - 3Blue1Brown Style</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            background-color: #1e1e2f;
+            color: #ffffff;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #animation-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+            background-color: rgba(30, 30, 47, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        button {
+            background-color: #3b1bb1;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        
+        button:hover {
+            background-color: #4c2cc2;
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(30, 30, 47, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 400px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1, h2, h3 {
+            margin-top: 0;
+            color: #ffd700;
+        }
+        
+        .grammar-rule {
+            font-family: monospace;
+            background-color: rgba(59, 27, 177, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .derivation {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: rgba(119, 176, 93, 0.2);
+            border-radius: 5px;
+        }
+        
+        .tree-label {
+            position: absolute;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+        }
+        
+        #tree1-label {
+            top: 20px;
+            left: 30%;
+        }
+        
+        #tree2-label {
+            top: 20px;
+            right: 30%;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="animation-container"></div>
+        
+        <div id="info-panel">
+            <h1>Grammar Ambiguity Visualization</h1>
+            <p>This visualization demonstrates how the grammar below is ambiguous by showing two different parse trees for the same string "aabb".</p>
+            
+            <h3>Grammar Rules:</h3>
+            <div class="grammar-rule">
+                S → aSbS<br>
+                S → bSaS<br>
+                S → λ
+            </div>
+            
+            <div class="derivation">
+                <h3>Derivation 1:</h3>
+                <p>S → aSbS → aaSbS → aabb</p>
+            </div>
+            
+            <div class="derivation">
+                <h3>Derivation 2:</h3>
+                <p>S → aSbS → aSbbS → aabb</p>
+            </div>
+        </div>
+        
+        <div class="tree-label" id="tree1-label">Parse Tree 1</div>
+        <div class="tree-label" id="tree2-label">Parse Tree 2</div>
+        
+        <div id="controls">
+            <button id="reset-view">Reset View</button>
+            <button id="animate-trees">Animate Trees</button>
+            <button id="toggle-info">Toggle Info</button>
+        </div>
+        
+        <div id="loading" class="loading">Loading visualization...</div>
+    </div>
+
+    <!-- Import Three.js and related libraries -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.159.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.159.0/examples/jsm/"
+            }
+        }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+        import { TWEEN } from 'three/addons/libs/tween.module.min.js';
+        
+        // Import our custom classes
+        import { MathAnimation, MathNotation, VisualEffects } from './js/3b1bAnimations.js';
+        import { AmbiguityVisualizer } from './js/ambiguity-visualizer.js';
+        
+        // Scene setup
+        let scene, camera, renderer, controls, ambiguityVisualizer;
+        let loadedFont, mathAnimation, visualEffects;
+        
+        // Parse tree data
+        const tree1 = { 
+            label: 'S', 
+            children: [
+                { label: 'a' }, 
+                { 
+                    label: 'S', 
+                    children: [{ label: 'a' }, { label: 'b' }, { label: 'S' }] 
+                }, 
+                { label: 'b' }, 
+                { label: 'S' }
+            ] 
+        };
+        
+        const tree2 = { 
+            label: 'S', 
+            children: [
+                { label: 'a' }, 
+                { label: 'S' }, 
+                { label: 'b' }, 
+                { 
+                    label: 'S', 
+                    children: [{ label: 'b' }, { label: 'a' }, { label: 'S' }] 
+                }
+            ] 
+        };
+        
+        // Initialize the visualization
+        function init() {
+            // Create scene with 3Blue1Brown style
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1e1e2f); // Dark background characteristic of 3B1B
+            
+            // Create camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 15);
+            
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.getElementById('animation-container').appendChild(renderer.domElement);
+            
+            // Add controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.enableZoom = true;
+            
+            // Initialize 3Blue1Brown style effects
+            mathAnimation = new MathAnimation(scene, camera);
+            visualEffects = new VisualEffects(scene, renderer);
+            
+            // Add enhanced lighting for 3B1B style
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 7);
+            scene.add(directionalLight);
+            
+            // Add subtle colored lighting for depth
+            const blueLight = new THREE.PointLight(0x3b1bb1, 0.3);
+            blueLight.position.set(-10, 5, 5);
+            scene.add(blueLight);
+            
+            const yellowLight = new THREE.PointLight(0xffd700, 0.2);
+            yellowLight.position.set(10, -5, -5);
+            scene.add(yellowLight);
+            
+            // Add grid for 3B1B style background
+            visualEffects.createGrid();
+            
+            // Load font for text
+            const fontLoader = new FontLoader();
+            fontLoader.load('https://unpkg.com/three@0.159.0/examples/fonts/helvetiker_regular.typeface.json', (font) => {
+                loadedFont = font;
+                mathAnimation.loadedFont = font; // Pass font to mathAnimation
+                
+                // Initialize ambiguity visualizer
+                ambiguityVisualizer = new AmbiguityVisualizer(scene, camera, loadedFont);
+                
+                // Show the ambiguity demonstration
+                ambiguityVisualizer.showAmbiguityDemo(tree1, tree2);
+                
+                // Hide loading message
+                document.getElementById('loading').style.display = 'none';
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize);
+            
+            // Add event listeners for buttons
+            document.getElementById('reset-view').addEventListener('click', resetView);
+            document.getElementById('animate-trees').addEventListener('click', animateTrees);
+            document.getElementById('toggle-info').addEventListener('click', toggleInfo);
+            
+            // Start animation loop
+            animate();
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function resetView() {
+            // Reset camera position
+            new TWEEN.Tween(camera.position)
+                .to({ x: 0, y: 5, z: 15 }, 1000)
+                .easing(TWEEN.Easing.Cubic.InOut)
+                .start();
+                
+            // Reset camera target
+            controls.target.set(0, 0, 0);
+        }
+        
+        function animateTrees() {
+            // Re-create the visualization with animation
+            if (ambiguityVisualizer) {
+                ambiguityVisualizer.dispose();
+                ambiguityVisualizer.showAmbiguityDemo(tree1, tree2);
+            }
+        }
+        
+        function toggleInfo() {
+            const infoPanel = document.getElementById('info-panel');
+            infoPanel.style.display = infoPanel.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Update controls
+            controls.update();
+            
+            // Update TWEEN animations
+            TWEEN.update();
+            
+            // Update 3B1B style animations
+            if (mathAnimation) {
+                mathAnimation.update();
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Start the visualization
+        init();
+    </script>
+</body>
+</html>
