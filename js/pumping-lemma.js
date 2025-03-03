@@ -2,14 +2,15 @@ import * as THREE from 'three';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { PumpingVisualizer } from './pumpingVisualizer.js';
+import { MathAnimation, MathNotation, VisualEffects } from './3b1bAnimations.js';
 
-let scene, camera, renderer, loadedFont, pumpingVisualizer;
+let scene, camera, renderer, loadedFont, pumpingVisualizer, mathAnimation, visualEffects;
 
 // Initialize the 3D scene
 function initialize() {
-    // Create scene
+    // Create scene with 3Blue1Brown style
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1e1e2f);
+    scene.background = new THREE.Color(0x1e1e2f); // Dark background characteristic of 3B1B
     
     // Create camera
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -18,21 +19,39 @@ function initialize() {
     // Create renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.getElementById('animation-container').appendChild(renderer.domElement);
     
-    // Add lights
-    const ambientLight = new THREE.AmbientLight(0x404040);
+    // Initialize 3Blue1Brown style effects
+    mathAnimation = new MathAnimation(scene, camera);
+    visualEffects = new VisualEffects(scene, renderer);
+    
+    // Add enhanced lighting for 3B1B style
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
     scene.add(ambientLight);
     
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(0, 10, 10);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(5, 10, 7);
     scene.add(directionalLight);
+    
+    // Add subtle colored lighting for depth
+    const blueLight = new THREE.PointLight(0x3b1bb1, 0.3);
+    blueLight.position.set(-10, 5, 5);
+    scene.add(blueLight);
+    
+    const yellowLight = new THREE.PointLight(0xffd700, 0.2);
+    yellowLight.position.set(10, -5, -5);
+    scene.add(yellowLight);
+    
+    // Add grid for 3B1B style background
+    visualEffects.createGrid();
     
     // Load font for text
     const fontLoader = new FontLoader();
     fontLoader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', (font) => {
         loadedFont = font;
         pumpingVisualizer = new PumpingVisualizer(scene, camera, loadedFont);
+        window.initializeTutorial(scene, camera, loadedFont);
     });
     
     // Handle window resize
@@ -45,9 +64,20 @@ function initialize() {
     animate();
 }
 
-// Animation loop
+// Animation loop with enhanced performance
 function animate() {
     requestAnimationFrame(animate);
+    
+    // Update orbit controls if they exist
+    if (pumpingVisualizer && pumpingVisualizer.controls) {
+        pumpingVisualizer.controls.update();
+    }
+    
+    // Update 3B1B style animations
+    if (mathAnimation) {
+        mathAnimation.update();
+    }
+    
     renderer.render(scene, camera);
 }
 
@@ -61,12 +91,8 @@ document.getElementById('start-btn').addEventListener('click', () => {
         return;
     }
     
-    // Use the new step-by-step demonstration method
     if (pumpingVisualizer) {
-        // Set the pumping length to a reasonable value based on the string length
         pumpingVisualizer.pumpingLength = Math.min(3, Math.floor(inputString.length / 2));
-        
-        // Start the step-by-step demonstration
         pumpingVisualizer.startDemonstration(inputString, language);
     } else {
         document.getElementById('feedback').innerText = "Loading visualizer... Please try again in a moment.";

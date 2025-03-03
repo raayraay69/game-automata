@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 export class PumpingVisualizer {
     constructor(scene, camera, loadedFont) {
@@ -9,6 +10,13 @@ export class PumpingVisualizer {
         this.currentStringGroup = null;
         this.currentStep = 0;
         this.pumpingLength = 3; // Default pumping length
+        
+        // Add orbit controls for interactive rotation
+        this.controls = new OrbitControls(this.camera, document.getElementById('animation-container'));
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.05;
+        this.controls.rotateSpeed = 0.5;
+        this.controls.enableZoom = true;
     }
 
     createStringVisualization(s, xLen, yLen, zLen, highlight = false) {
@@ -17,38 +25,101 @@ export class PumpingVisualizer {
         }
 
         const stringGroup = new THREE.Group();
-        let position = -s.length / 2;
+        const radius = 3;
+        const heightPerChar = 0.5;
+        const rotationPerChar = Math.PI / 8;
+        
+        // 3Blue1Brown color palette
+        const colors = {
+            x: 0x3b1bb1,      // 3B1B signature blue for x
+            y: 0xffd700,      // Gold/yellow for y (the pumping part)
+            z: 0x77b05d,      // Green for z
+            text: 0xffffff,    // White text
+            line: 0x6b7db3     // Subtle blue for connecting lines
+        };
 
         s.split("").forEach((char, index) => {
-            const geometry = new THREE.BoxGeometry(1, 1, 1);
+            // Calculate helix position with smoother curve
+            const angle = index * rotationPerChar;
+            const x = radius * Math.cos(angle);
+            const z = radius * Math.sin(angle);
+            const y = index * heightPerChar;
+
+            // Create enhanced glowing orb for character
+            const geometry = new THREE.SphereGeometry(0.35, 32, 32);
             let color;
-            if (index < xLen) color = 0xff0000; // Red for x
-            else if (index < xLen + yLen) color = 0x00ff00; // Green for y
-            else color = 0x0000ff; // Blue for z
+            if (index < xLen) color = colors.x;
+            else if (index < xLen + yLen) color = colors.y;
+            else color = colors.z;
 
-            const material = new THREE.MeshPhongMaterial({ color });
-            const cube = new THREE.Mesh(geometry, material);
-            cube.position.set(position, 2, 0); // Position above the DFA states
-            stringGroup.add(cube);
+            const material = new THREE.MeshPhongMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.7,
+                shininess: 70,
+                transparent: true,
+                opacity: 0.9
+            });
 
+            const orb = new THREE.Mesh(geometry, material);
+            orb.position.set(x, y, z);
+            
+            // Add subtle animation to orbs
+            const initialScale = { value: 0 };
+            const targetScale = { value: 1 };
+            new TWEEN.Tween(initialScale)
+                .to(targetScale, 500 + index * 100)
+                .easing(TWEEN.Easing.Back.Out)
+                .onUpdate(() => {
+                    orb.scale.set(
+                        initialScale.value,
+                        initialScale.value,
+                        initialScale.value
+                    );
+                })
+                .delay(index * 50)
+                .start();
+                
+            stringGroup.add(orb);
+
+            // Add character label
             if (this.loadedFont) {
-                const textGeometry = new TextGeometry(char, { 
-                    font: this.loadedFont, 
-                    size: 0.5, 
-                    height: 0.1 
+                const textGeometry = new TextGeometry(char, {
+                    font: this.loadedFont,
+                    size: 0.2,
+                    height: 0.05
                 });
                 const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
                 const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-                textMesh.position.set(position - 0.25, 2.5, 0);
+                textMesh.position.set(x + 0.4, y, z);
+                textMesh.lookAt(new THREE.Vector3(0, y, 0));
                 stringGroup.add(textMesh);
             }
-            position += 1.1;
+
+            // Add connecting line to next character if not last
+            if (index < s.length - 1) {
+                const nextAngle = (index + 1) * rotationPerChar;
+                const nextX = radius * Math.cos(nextAngle);
+                const nextZ = radius * Math.sin(nextAngle);
+                const nextY = (index + 1) * heightPerChar;
+
+                const points = [];
+                points.push(new THREE.Vector3(x, y, z));
+                points.push(new THREE.Vector3(nextX, nextY, nextZ));
+
+                const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+                const lineMaterial = new THREE.LineBasicMaterial({ color: 0x6b7db3, opacity: 0.7, transparent: true });
+                const line = new THREE.Line(lineGeometry, lineMaterial);
+                stringGroup.add(line);
+            }
         });
 
         this.scene.add(stringGroup);
         this.currentStringGroup = stringGroup;
-        this.camera.position.set(0, 5, 15);
-        this.camera.lookAt(0, 2, 0);
+
+        // Adjust camera position for better helix view
+        this.camera.position.set(8, s.length * heightPerChar / 2, 8);
+        this.camera.lookAt(0, s.length * heightPerChar / 2, 0);
 
         if (highlight) {
             this.highlightSections(xLen, yLen);
