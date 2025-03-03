@@ -62,35 +62,81 @@ export class PumpingVisualizer {
         let i = 1; // Initial pump count
         const stringGroup = this.createStringVisualization(s, xLen, yLen, zLen);
 
-        document.getElementById("input-string-display").innerText = `Original: ${s}`;
+        document.getElementById("input-string-display").innerHTML = `
+            <div class="language-definition">
+                <h4>Language: ${this.getLanguageDefinition(language)}</h4>
+                <p>Original string: ${s}</p>
+                <p>Decomposition: x = "${s.slice(0, xLen)}", y = "${s.slice(xLen, xLen + yLen)}", z = "${s.slice(xLen + yLen)}"</p>
+            </div>
+        `;
 
         // Setup explanation panel
         const explanationPanel = document.getElementById("explanation-panel");
         explanationPanel.style.display = "block";
         explanationPanel.innerHTML = `
             <div class="explanation-header">
-                <h3>Visual Explanation</h3>
+                <h3>Interactive Pumping Lemma Demonstration</h3>
                 <span class="close-btn" onclick="hideExplanation()">×</span>
             </div>
+            <div class="pumping-steps">
+                <div class="step-indicator">Current Step: Pumping Demonstration</div>
+                <div class="step-explanation">
+                    <p>Red (x) = "${s.slice(0, xLen)}"</p>
+                    <p>Green (y) = "${s.slice(xLen, xLen + yLen)}" (this part will be pumped)</p>
+                    <p>Blue (z) = "${s.slice(xLen + yLen)}"</p>
+                </div>
+            </div>
             <div id="animation-container"></div>
-            <div id="explanation-text">Red = x, Green = y, Blue = z<br>Pump y to see the effect.</div>
+            <div id="explanation-text" class="pumping-explanation">
+                <p>Observe how pumping affects the string:</p>
+                <ul>
+                    <li>Current i = ${i}</li>
+                    <li>|xy| = ${xLen + yLen} ≤ p (satisfying condition 1)</li>
+                    <li>|y| = ${yLen} > 0 (satisfying condition 2)</li>
+                </ul>
+            </div>
         `;
 
-        // Add pump button
-        const pumpButton = document.createElement("button");
-        pumpButton.innerText = "Pump y";
-        pumpButton.className = "action-btn";
-        pumpButton.onclick = () => {
+        // Add pump controls
+        const controlsDiv = document.createElement("div");
+        controlsDiv.className = "pump-controls";
+        
+        // Add pump up button (i++)
+        const pumpUpButton = document.createElement("button");
+        pumpUpButton.innerText = "Pump y (i++)";
+        pumpUpButton.className = "action-btn";
+        pumpUpButton.onclick = () => {
             i++;
-            const pumpedS = s.slice(0, xLen) + s.slice(xLen, xLen + yLen).repeat(i) + s.slice(xLen + yLen);
-            this.scene.remove(stringGroup);
-            this.createStringVisualization(pumpedS, xLen, yLen * i, zLen);
-
-            let inLanguage = this.checkLanguageMembership(pumpedS, language);
-            document.getElementById("explanation-text").innerText = 
-                `Pumped string: ${pumpedS}\nIn language: ${inLanguage}`;
+            this.updatePumpedString(s, xLen, yLen, zLen, i, language, stringGroup);
         };
-        explanationPanel.appendChild(pumpButton);
+        
+        // Add pump down button (i--)
+        const pumpDownButton = document.createElement("button");
+        pumpDownButton.innerText = "Remove y (i--)";
+        pumpDownButton.className = "action-btn";
+        pumpDownButton.disabled = i <= 0;
+        pumpDownButton.onclick = () => {
+            if (i > 0) {
+                i--;
+                this.updatePumpedString(s, xLen, yLen, zLen, i, language, stringGroup);
+                pumpDownButton.disabled = i <= 0;
+            }
+        };
+        
+        // Add reset button
+        const resetButton = document.createElement("button");
+        resetButton.innerText = "Reset (i=1)";
+        resetButton.className = "action-btn";
+        resetButton.onclick = () => {
+            i = 1;
+            this.updatePumpedString(s, xLen, yLen, zLen, i, language, stringGroup);
+            pumpDownButton.disabled = i <= 0;
+        };
+        
+        controlsDiv.appendChild(pumpUpButton);
+        controlsDiv.appendChild(pumpDownButton);
+        controlsDiv.appendChild(resetButton);
+        explanationPanel.appendChild(controlsDiv);
 
         // Initial feedback
         setTimeout(() => {
@@ -106,6 +152,21 @@ export class PumpingVisualizer {
                 document.getElementById("explanation-panel").style.display = "none";
                 document.getElementById("input-string-display").innerText = "";
             }, 10000);
+        }
+    }
+
+    getLanguageDefinition(language) {
+        switch (language) {
+            case 'equal_a_b':
+                return 'L = { w | w has equal number of as and bs }';
+            case 'n_greater_m':
+                return 'L = { a<sup>n</sup>b<sup>m</sup> | n > m }';
+            case 'anbn':
+                return 'L = { a<sup>n</sup>b<sup>n</sup> | n ≥ 0 }';
+            case 'ww':
+                return 'L = { ww | w ∈ {a,b}* }';
+            default:
+                return 'Unknown language';
         }
     }
 
@@ -200,6 +261,46 @@ export class PumpingVisualizer {
         const pumpedS = s.slice(0, xLen) + s.slice(xLen, xLen + yLen).repeat(2) + s.slice(xLen + yLen);
         const isRegular = this.checkLanguageMembership(pumpedS, language);
         return `Step 5: The pumped string "${pumpedS}" is ${isRegular ? "" : "not "}in the language. Thus, the language is ${isRegular ? "possibly regular (try more splits!)" : "not regular"}.`;
+    }
+
+    updatePumpedString(s, xLen, yLen, zLen, i, language, stringGroup) {
+        const pumpedS = s.slice(0, xLen) + s.slice(xLen, xLen + yLen).repeat(i) + s.slice(xLen + yLen);
+        this.scene.remove(stringGroup);
+        this.createStringVisualization(pumpedS, xLen, yLen * i, zLen);
+
+        const inLanguage = this.checkLanguageMembership(pumpedS, language);
+        const aCount = pumpedS.split('a').length - 1;
+        const bCount = pumpedS.split('b').length - 1;
+        
+        let explanation = '';
+        switch(language) {
+            case 'equal_a_b':
+            case 'anbn':
+                explanation = inLanguage ? 
+                    `The string has ${aCount} a's and ${bCount} b's, which are equal.` : 
+                    `The string has ${aCount} a's and ${bCount} b's, which are NOT equal.`;
+                break;
+            case 'n_greater_m':
+                explanation = inLanguage ? 
+                    `The string has ${aCount} a's and ${bCount} b's, so n > m.` : 
+                    `The string has ${aCount} a's and ${bCount} b's, so n ≤ m.`;
+                break;
+            case 'ww':
+                const half = pumpedS.length / 2;
+                explanation = inLanguage ? 
+                    `The string can be split into two equal halves: "${pumpedS.slice(0, half)}" and "${pumpedS.slice(half)}".` : 
+                    `The string cannot be split into two equal halves.`;
+                break;
+        }
+
+        document.getElementById("explanation-text").innerHTML = `
+            <p>Pumped string (i = ${i}): <strong>${pumpedS}</strong></p>
+            <p>Is this string in the language? <strong>${inLanguage ? 'YES' : 'NO'}</strong></p>
+            <p>${explanation}</p>
+            <p class="conclusion">${inLanguage ? 
+                'If this were a regular language, all pumped strings would remain in the language.' : 
+                'This contradicts the pumping lemma! Therefore, the language is NOT regular.'}</p>
+        `;
     }
 
     highlightSections(xLen, yLen) {

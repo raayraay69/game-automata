@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Pumping Lemma Adventure</title>
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/pumping-lemma.css">
     <script type="importmap">
         {
             "imports": {
@@ -16,20 +17,30 @@
 <body>
     <div id="input-panel">
         <h2>Pumping Lemma Visualizer</h2>
-        <div class="input-group">
-            <label for="language-select">Choose a Language:</label>
-            <select id="language-select">
-                <option value="equal_a_b">a^n b^n (e.g., "aabb")</option>
-                <option value="n_greater_m">a^n b^m where n > m (e.g., "aaab")</option>
-                <option value="anbn">a^n b^n (e.g., "aaabbb")</option>
-                <option value="ww">ww (e.g., "abab")</option>
-            </select>
+        <div class="button-group" style="margin-bottom: 20px;">
+            <button id="tutorial-btn" class="action-btn">New to Pumping Lemma? Start Here!</button>
+            <button id="practice-btn" class="action-btn">Practice Mode</button>
+        </div>
+        <div class="language-definition">
+            <h4>Available Languages</h4>
+            <div class="input-group">
+                <label for="language-select">Choose a Language:</label>
+                <select id="language-select">
+                    <option value="equal_a_b">L = { w | w has equal number of a's and b's }</option>
+                    <option value="n_greater_m">L = { a^n b^m | n > m }</option>
+                    <option value="anbn">L = { a^n b^n | n ≥ 0 }</option>
+                    <option value="ww">L = { ww | w ∈ {a,b}* }</option>
+                </select>
+            </div>
+            <div class="example-box">
+                <p>Example strings for selected language will appear here</p>
+            </div>
         </div>
         <div class="input-group">
             <label for="input-string">Enter a String:</label>
             <input type="text" id="input-string" placeholder="e.g., aabb">
         </div>
-        <button id="start-btn" class="action-btn">Start Visualization</button>
+        <button id="start-btn" class="action-btn">Start Interactive Demonstration</button>
     </div>
 
     <div id="explanation-panel" style="display: none;">
@@ -44,6 +55,41 @@
     <div id="input-string-display"></div>
     <div id="feedback"></div>
 
-    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/pumping-lemma.js"></script>
+    <script type="module">
+        import { PumpingTutorial } from './js/pumpingTutorial.js';
+        import { PumpingPractice } from './js/pumpingPractice.js';
+        
+        let pumpingTutorial;
+        let pumpingPractice;
+
+        // Initialize the tutorial when the scene is ready
+        window.initializeTutorial = function(scene, camera, loadedFont) {
+            pumpingTutorial = new PumpingTutorial(scene, camera, loadedFont);
+            window.pumpingTutorial = pumpingTutorial; // Make it available globally for the step buttons
+            
+            // Initialize practice mode
+            pumpingPractice = new PumpingPractice(scene, camera, loadedFont);
+            window.pumpingPractice = pumpingPractice; // Make it available globally
+        };
+
+        // Add tutorial button handler
+        document.getElementById('tutorial-btn').addEventListener('click', () => {
+            if (pumpingTutorial) {
+                pumpingTutorial.showNotationGuide();
+            } else {
+                alert('Please wait while the visualizer loads...');
+            }
+        });
+        
+        // Add practice button handler
+        document.getElementById('practice-btn').addEventListener('click', () => {
+            if (pumpingPractice) {
+                pumpingPractice.showPracticeQuestion();
+            } else {
+                alert('Please wait while the visualizer loads...');
+            }
+        });
+    </script>
 </body>
 </html>

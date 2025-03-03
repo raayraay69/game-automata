@@ -1,3 +1,4 @@
 {
-    "livePreview.defaultPreviewPath": "/automata-adventure.html"
+    "livePreview.defaultPreviewPath": "/automata-adventure.html",
+    "CodeGPT.apiKey": "CodeGPT Plus Beta"
 }

@@ -87,15 +87,15 @@
 <body>
     <div id="topic-menu">
         <h3 style="color: #fff; text-align: center; margin-bottom: 15px; font-weight: 600;">Planetary Systems</h3>
-        <button id="dfa-btn" onclick="selectTopic('DFA')">DFA</button>
-        <button id="nfa-btn" onclick="selectTopic('NFA')" disabled>NFA</button>
-        <button id="regex-btn" onclick="selectTopic('Regex')" disabled>Regex</button>
-        <button id="pumping-btn" onclick="selectTopic('Pumping')" disabled>Pumping Lemma</button>
-        <button id="pda-btn" onclick="selectTopic('PDA')" disabled>PDA</button>
-        <button id="tm-btn" onclick="selectTopic('TM')" disabled>Turing Machine</button>
-        <button id="ambiguity-btn" onclick="selectTopic('Ambiguity')" disabled>Ambiguity</button>
-        <button id="assignment1-btn" onclick="selectTopic('Assignment1')" disabled>Assignment 1</button>
-        <button id="assignment2-btn" onclick="selectTopic('Assignment2')" disabled>Assignment 2</button>
+        <button onclick="selectTopic('DFA')">DFA</button>
+        <button onclick="selectTopic('NFA')">NFA</button>
+        <button onclick="selectTopic('Regex')">Regex</button>
+        <button onclick="selectTopic('Pumping')">Pumping Lemma</button>
+        <button onclick="selectTopic('PDA')">PDA</button>
+        <button onclick="selectTopic('TM')">Turing Machine</button>
+        <button onclick="selectTopic('Ambiguity')">Ambiguity</button>
+        <button onclick="selectTopic('Assignment1')">Assignment 1</button>
+        <button onclick="selectTopic('Assignment2')">Assignment 2</button>
         <button onclick="startPracticeMode()">Practice Mode</button>
     </div>
     <div id="quiz-container" style="display:none;">
@@ -157,7 +157,7 @@
         let energyCredits = 0;
         let lives = 3;
         let level = 1;
-        let unlockedLevels = ['DFA'];
+        // All levels are unlocked by default
         let practiceMode = false;
 
         const topics = ['DFA', 'NFA', 'Regex', 'Pumping', 'PDA', 'TM', 'Ambiguity', 'Assignment1', 'Assignment2'];
@@ -377,10 +377,6 @@
 
         // Functions
         function selectTopic(topic) {
-            if (!unlockedLevels.includes(topic)) {
-                document.getElementById('feedback').innerText = 'Complete previous levels to unlock this topic!';
-                return;
-            }
             currentTopic = topic;
             currentQuestionIndex = 0;
             score = 0;
@@ -388,6 +384,7 @@
             document.getElementById('tutorial-container').style.display = 'block';
             document.getElementById('quiz-container').style.display = 'none';
             document.getElementById('tutorial-title').innerText = `${currentTopic} System`;
+            document.getElementById('feedback').innerText = "";
             document.getElementById('tutorial-text').innerText = quizData[currentTopic][0].tutorial;
             if (currentTopic === "Pumping") {
                 document.getElementById("tutorial-text").innerHTML += `
@@ -399,7 +396,7 @@
                     </ul>
                 `;
             }
-            if (quizData[currentTopic][0].visualizationType === 'DFA' || quizData[currentTopic][0].visualizationType === 'NFA') {
+            if (quizData[currentTopic][0].visualizationType === 'DFA' || quizData[currentTopic][0].visualizationType === 'NFA' || quizData[currentTopic][0].visualizationType === 'Ambiguity') {
                 showVisualDemonstration(quizData[currentTopic][0], true, true);
             }
         }
@@ -525,7 +522,7 @@
                 sounds.correct();
                 document.getElementById('feedback').innerText = `Correct! ${question.explanation}`;
                 showVisualDemonstration(question, true);
-            } else {
+            } else if (question.visualizationType !== 'Pumping') {
                 lives--;
                 sounds.incorrect();
                 document.getElementById('feedback').innerText = `Oops! Correct answer: "${question.options[question.answer]}". ${question.explanation}`;
@@ -541,20 +538,20 @@
                     return;
                 }
             }
+            else {
+                document.getElementById('feedback').innerText = `Oops! Correct answer: "${question.options[question.answer]}". ${question.explanation}`;
+            }
+
             currentQuestionIndex++;
             updateHUD();
             setTimeout(practiceMode ? showPracticeQuestion : showQuizQuestion, 3000);
         }
 
         function unlockNextLevel() {
-            const nextIndex = topics.indexOf(currentTopic) + 1;
-            if (nextIndex < topics.length && !unlockedLevels.includes(topics[nextIndex])) {
-                unlockedLevels.push(topics[nextIndex]);
-                document.getElementById(`${topics[nextIndex].toLowerCase()}-btn`).disabled = false;
-                sounds.levelUp();
-                document.getElementById('mission-log').innerText = `Mission Updated: Level ${level} complete! Proceed to ${topics[nextIndex]} system.`;
-                level++;
-            }
+            // All levels are already unlocked, just play a sound for completion
+            sounds.levelUp();
+            document.getElementById('mission-log').innerText = `Mission Updated: Level ${level} complete! Proceed to next system.`;
+            level++;
         }
 
         // Import the PumpingVisualizer class
@@ -571,7 +568,7 @@
         }
 
         function showVisualDemonstration(question, isCorrect, isExplanation = false) {
-            if (question.visualizationType === 'DFA' || question.visualizationType === 'NFA') {
+            if (question.visualizationType === 'DFA' || question.visualizationType === 'NFA' || question.visualizationType === 'Ambiguity') {
                 const testString = question.demoString || "01";
                 let currentState = 'q0';
                 let step = 0;
@@ -599,6 +596,12 @@
                         if (!isExplanation) setTimeout(() => document.getElementById('input-string-display').innerHTML = '', 2000);
                     }
                 }, 1000);
+            } else if (question.visualizationType === 'Ambiguity') {
+                // Handle Ambiguity visualization
+                if (question.tree1 && question.tree2) {
+                    // Display the parse trees
+                    document.getElementById('feedback').innerText = "Showing parse trees for Ambiguity";
+                }
             } else if (question.visualizationType === 'Pumping') {
                 // Use the PumpingVisualizer class for Pumping Lemma visualizations
                 if (!pumpingVisualizer) {

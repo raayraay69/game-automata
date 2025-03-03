@@ -367,17 +367,7 @@
           const topicMenuDiv = document.getElementById('topic-menu');
           topicMenuDiv.innerHTML = '<h3 style="color: #fff; text-align: center; margin-bottom: 15px; font-weight: 600;">Planetary Systems</h3>';
 
-          const buttonData = [
-            { id: 'dfa-btn', topic: 'DFA', label: 'DFA' },
-            { id: 'nfa-btn', topic: 'NFA', label: 'NFA', disabled: true },
-            { id: 'regex-btn', topic: 'Regex', label: 'Regex', disabled: true },
-            { id: 'pumping-btn', topic: 'Pumping', label: 'Pumping Lemma', disabled: true },
-            { id: 'pda-btn', topic: 'PDA', label: 'PDA', disabled: true },
-            { id: 'tm-btn', topic: 'TM', label: 'Turing Machine', disabled: true },
-            { id: 'ambiguity-btn', topic: 'Ambiguity', label: 'Ambiguity', disabled: true },
-            { id: 'assignment1-btn', topic: 'Assignment1', label: 'Assignment 1', disabled: true },
-            { id: 'assignment2-btn', topic: 'Assignment2', label: 'Assignment 2', disabled: true }
-          ];
+          const buttonData = [            { id: 'dfa-btn', topic: 'DFA', label: 'DFA' },            { id: 'nfa-btn', topic: 'NFA', label: 'NFA', disabled: true },            { id: 'regex-btn', topic: 'Regex', label: 'Regex', disabled: true },            { id: 'pumping-btn', topic: 'Pumping', label: 'Pumping Lemma', disabled: true },            { id: 'pda-btn', topic: 'PDA', label: 'PDA', disabled: true },            { id: 'tm-btn', topic: 'TM', label: 'Turing Machine', disabled: true },            { id: 'ambiguity-btn', topic: 'Ambiguity', label: 'Ambiguity', disabled: true },            { id: 'assignment1-btn', topic: 'Assignment1', label: 'Assignment 1', disabled: true },            { id: 'assignment2-btn', topic: 'Assignment2', label: 'Assignment 2', disabled: true },            { id: 'practice-btn', label: 'Practice Mode', action: 'startPracticeMode' }          ];
           
           buttonData.forEach(data => {
             const button = document.createElement('button');
