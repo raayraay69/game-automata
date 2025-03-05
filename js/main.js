@@ -1,14 +1,14 @@
-// Main JavaScript for Automata Galaxy: Exam Quest
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { FontLoader } from 'three/addons/loaders/FontLoader.js';
-import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
-import { PumpingVisualizer } from './pumpingVisualizer.js';
+// Main JavaScript for Automata Galaxy: Exam Questimport * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { FontLoader } from 'three/addons/loaders/FontLoader.js'
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js'
+import { PumpingVisualizer } from './pumpingVisualizer.js'
 
-// Global Variables
-let currentTopic = null;
-let currentQuestionIndex = 0;
-let score = 0;
+// Global Variableslet currentTopic = null
+let currentQuestionIndex = 0
+let score = 0
+
+
 let totalQuestions = 0;
 let currentQuestion = null;
 let energyCredits = 0;
